@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.Mqtt
             Closed = 16
         }
 
-        // Topic names for sending cloud-to-device messages
+        // Topic names for sending device-to-cloud messages
         private const string DeviceTelemetryTopicFormat = "devices/{0}/messages/events/";
         private const string ModuleTelemetryTopicFormat = "devices/{0}/modules/{1}/messages/events/";
 
