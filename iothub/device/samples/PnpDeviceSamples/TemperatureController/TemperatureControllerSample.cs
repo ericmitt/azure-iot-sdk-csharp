@@ -9,10 +9,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Devices.Client;
+using Microsoft.Azure.Devices.Client.PlugAndPlayConvention;
 using Microsoft.Azure.Devices.Shared;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using PnpHelpers;
 
 namespace TemperatureController
 {
@@ -207,12 +207,12 @@ namespace TemperatureController
             string componentName = (string)userContext;
             string propertyName = "targetTemperature";
 
-            (bool targetTempUpdateReceived, double targetTemperature) = PnpHelper.GetPropertyFromTwin<double>(desiredProperties, propertyName, componentName);
+            (bool targetTempUpdateReceived, double targetTemperature) = PnpConventionHelper.GetPropertyFromTwin<double>(desiredProperties, propertyName, componentName);
             if (targetTempUpdateReceived)
             {
                 _logger.LogDebug($"Property: Received - component=\"{componentName}\", {{ \"{propertyName}\": {targetTemperature}°C }}.");
 
-                string pendingPropertyPatch = PnpHelper.CreatePropertyEmbeddedValuePatch(
+                string pendingPropertyPatch = PnpConventionHelper.CreatePropertyEmbeddedValuePatch(
                     propertyName,
                     JsonConvert.SerializeObject(targetTemperature),
                     ackCode: (int)StatusCode.InProgress,
@@ -231,7 +231,7 @@ namespace TemperatureController
                     await Task.Delay(6 * 1000);
                 }
 
-                string completedPropertyPatch = PnpHelper.CreatePropertyEmbeddedValuePatch(
+                string completedPropertyPatch = PnpConventionHelper.CreatePropertyEmbeddedValuePatch(
                     propertyName,
                     JsonConvert.SerializeObject(_temperature[componentName]),
                     ackCode: (int)StatusCode.Completed,
@@ -255,7 +255,7 @@ namespace TemperatureController
             string telemetryName = "workingSet";
             long workingSet = Process.GetCurrentProcess().PrivateMemorySize64 / 1024;
 
-            using Message msg = PnpHelper.CreateIothubMessageUtf8(telemetryName, JsonConvert.SerializeObject(workingSet));
+            using Message msg = PnpConventionHelper.CreateIothubMessageUtf8(telemetryName, JsonConvert.SerializeObject(workingSet));
 
             await _deviceClient.SendEventAsync(msg, cancellationToken);
             _logger.LogDebug($"Telemetry: Sent - {{ \"{telemetryName}\": {workingSet}KiB }}.");
@@ -265,7 +265,7 @@ namespace TemperatureController
         private async Task SendDeviceSerialNumberAsync(CancellationToken cancellationToken)
         {
             string propertyName = "serialNumber";
-            string propertyPatch = PnpHelper.CreatePropertyPatch(propertyName, JsonConvert.SerializeObject(SerialNumber));
+            string propertyPatch = PnpConventionHelper.CreatePropertyPatch(propertyName, JsonConvert.SerializeObject(SerialNumber));
             var reportedProperties = new TwinCollection(propertyPatch);
 
             await _deviceClient.UpdateReportedPropertiesAsync(reportedProperties, cancellationToken);
@@ -288,7 +288,7 @@ namespace TemperatureController
         {
             string telemetryName = "temperature";
             double currentTemperature = _temperature[componentName];
-            using Message msg = PnpHelper.CreateIothubMessageUtf8(telemetryName, JsonConvert.SerializeObject(currentTemperature), componentName);
+            using Message msg = PnpConventionHelper.CreateIothubMessageUtf8(telemetryName, JsonConvert.SerializeObject(currentTemperature), componentName);
 
             await _deviceClient.SendEventAsync(msg, cancellationToken);
             _logger.LogDebug($"Telemetry: Sent - component=\"{componentName}\", {{ \"{telemetryName}\": {currentTemperature}°C }}.");
@@ -307,7 +307,7 @@ namespace TemperatureController
         {
             string propertyName = "maxTempSinceLastReboot";
             double maxTemp = _maxTemp[componentName];
-            string propertyPatch = PnpHelper.CreatePropertyPatch(propertyName, JsonConvert.SerializeObject(maxTemp), componentName);
+            string propertyPatch = PnpConventionHelper.CreatePropertyPatch(propertyName, JsonConvert.SerializeObject(maxTemp), componentName);
             var reportedProperties = new TwinCollection(propertyPatch);
 
             await _deviceClient.UpdateReportedPropertiesAsync(reportedProperties, cancellationToken);
